@@ -11,6 +11,10 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
+type Handler struct {
+	ExpenseM models.ExpenseModel
+}
+
 // ! Стартовая страница
 func HelloHandler(w http.ResponseWriter, r *http.Request) {
 	models.ExpenseMu.Lock()
@@ -19,7 +23,7 @@ func HelloHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // ! Созадние гет запроса, просим показать записи которые уже есть
-func ExpensesHandler(w http.ResponseWriter, r *http.Request) {
+func (h Handler) ExpensesHandler(w http.ResponseWriter, r *http.Request) {
 
 	pages := 1
 	pagesStr := r.URL.Query().Get("page")
@@ -47,7 +51,7 @@ func ExpensesHandler(w http.ResponseWriter, r *http.Request) {
 
 	offset := (pages - 1) * limit
 
-	expenses, err := models.GetAllExpenses(limit, offset)
+	expenses, err := h.ExpenseM.GetAllExpenses(limit, offset)
 	if err != nil {
 		var appErr models.AppError
 
@@ -64,7 +68,7 @@ func ExpensesHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // !Создание пост запроса, добавление новой траты
-func ExpensesCreateHandler(w http.ResponseWriter, r *http.Request) {
+func (h Handler) ExpensesCreateHandler(w http.ResponseWriter, r *http.Request) {
 	//? для отправки запроса - curl -Method Post -Uri "http://localhost:8080/add" -Header @{"Content-Type"="application/json"} -Body '{"name":"Pizza","price":850}'
 	var newExpense models.Expense
 	err := json.NewDecoder(r.Body).Decode(&newExpense)
@@ -86,7 +90,7 @@ func ExpensesCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = models.InsertExpense(newExpense)
+	err = h.ExpenseM.InsertExpense(newExpense)
 	if err != nil {
 		var appErr models.AppError
 
@@ -103,14 +107,14 @@ func ExpensesCreateHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // ! Создание запроса одной траты по ID
-func GetExpenseByID(w http.ResponseWriter, r *http.Request) {
+func (h Handler) GetExpenseByID(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil || id < 0 {
 		http.Error(w, "Отправлены не верные данные", http.StatusBadRequest)
 		return
 	}
-	res, err := models.GetOneExpense(id)
+	res, err := h.ExpenseM.GetOneExpense(id)
 	if err != nil {
 		var appErr models.AppError
 
@@ -133,7 +137,7 @@ func GetExpenseByID(w http.ResponseWriter, r *http.Request) {
 }
 
 // ! Создание DLEATE запроса
-func ExpensesDel(w http.ResponseWriter, r *http.Request) {
+func (h Handler) ExpensesDel(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id") // Достанет то, что попало в {id}
 	id, err := strconv.Atoi(idStr)
 	if err != nil || id < 0 {
@@ -141,7 +145,7 @@ func ExpensesDel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = models.DeleteFromID(id)
+	err = h.ExpenseM.DeleteFromID(id)
 	if err != nil {
 		var appErr models.AppError
 
@@ -164,8 +168,8 @@ func ExpensesDel(w http.ResponseWriter, r *http.Request) {
 }
 
 // ! Создание гет запроса, получение общей суммы
-func TotalHandler(w http.ResponseWriter, r *http.Request) {
-	total, err := models.TotalFromPrice()
+func (h Handler) TotalHandler(w http.ResponseWriter, r *http.Request) {
+	total, err := h.ExpenseM.TotalFromPrice()
 	if err != nil {
 		http.Error(w, "Внутриняя ошибка сервера", http.StatusInternalServerError)
 		return

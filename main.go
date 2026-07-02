@@ -19,10 +19,15 @@ func main() {
 	if err != nil {
 		log.Println("Предупреждение: файл .env не найден, используем системные переменные окружения")
 	}
-	err = models.InitDB()
+
+	db, err := models.InitDB()
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer db.Close()
+
+	myModel := models.ExpenseModel{DB: db}
+	myHandler := handlers.Handler{ExpenseM: myModel}
 
 	//!Создание главного роутера
 	r := chi.NewRouter()
@@ -31,12 +36,12 @@ func main() {
 
 	//!определяем маршруты(rest API)
 
-	r.Get("/expenses", handlers.ExpensesHandler)
-	r.Get("/expenses/{id}", handlers.GetExpenseByID)
-	r.Post("/add", handlers.ExpensesCreateHandler)
-	r.Get("/total", handlers.TotalHandler)
+	r.Get("/expenses", myHandler.ExpensesHandler)
+	r.Get("/expenses/{id}", myHandler.GetExpenseByID)
+	r.Post("/add", myHandler.ExpensesCreateHandler)
+	r.Get("/total", myHandler.TotalHandler)
 	// Магия chi: красивый URL-параметр {id} вместо ?id=...
-	r.Delete("/delete/{id}", handlers.ExpensesDel)
+	r.Delete("/delete/{id}", myHandler.ExpensesDel)
 	r.Get("/", handlers.HelloHandler)
 
 	fmt.Println("Сревер запущен на http://localhost:8080 ")

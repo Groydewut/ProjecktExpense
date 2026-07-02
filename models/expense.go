@@ -28,17 +28,20 @@ type Budget struct {
 	Tracker []Expense
 }
 
+type ExpenseModel struct {
+	DB *sql.DB
+}
+
 var (
 	ExpenseMu    sync.Mutex
 	GlobalBudget Budget
-	DB           *sql.DB
 )
 
 const Filename = "my_expenses.json"
 
-func TotalFromPrice() (float64, error) {
+func (m ExpenseModel) TotalFromPrice() (float64, error) {
 	var total float64
-	err := DB.QueryRow("SELECT COALESCE(SUM(price),0) FROM expenses WHERE deleted_at IS NULL").Scan(&total) //создание запрос который вернёт одну строку, COALESCE(SUM(price),0) - говорит что если первое значение NULL возми второе значение
+	err := m.DB.QueryRow("SELECT COALESCE(SUM(price),0) FROM expenses WHERE deleted_at IS NULL").Scan(&total) //создание запрос который вернёт одну строку, COALESCE(SUM(price),0) - говорит что если первое значение NULL возми второе значение
 	if err != nil {
 		return 0, err
 	}
@@ -47,10 +50,10 @@ func TotalFromPrice() (float64, error) {
 
 }
 
-func GetOneExpense(id int) (Expense, error) {
+func (m ExpenseModel) GetOneExpense(id int) (Expense, error) {
 	query := "SELECT id,name,price,category,deleted_at FROM expenses WHERE id=$1 AND deleted_at IS NULL"
 	var e Expense
-	err := DB.QueryRow(query, id).Scan(&e.ID, &e.Name, &e.Price, &e.Category, &e.DeletedAt)
+	err := m.DB.QueryRow(query, id).Scan(&e.ID, &e.Name, &e.Price, &e.Category, &e.DeletedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return Expense{}, AppError{
@@ -69,10 +72,10 @@ func GetOneExpense(id int) (Expense, error) {
 	return e, nil
 }
 
-func DeleteFromID(id int) error {
+func (m ExpenseModel) DeleteFromID(id int) error {
 	query := "UPDATE expenses SET deleted_at = NOW() WHERE id=$1 AND deleted_at IS NULL" //удаление строки по id ипользуя плейсхолдер(подставное значение,защита от sql инъекций)
 	// ! AND deleted_at IS NULL — это защита от повторного удаления уже удаленного элемента
-	res, err := DB.Exec(query, id)
+	res, err := m.DB.Exec(query, id)
 	// res хранит результат удаления, объект sql.Result
 	if err != nil {
 		return AppError{
@@ -102,8 +105,8 @@ func DeleteFromID(id int) error {
 	return nil
 }
 
-func GetAllExpenses(limit, offset int) ([]Expense, error) {
-	rows, err := DB.Query("SELECT id, name, price, category,deleted_at FROM expenses WHERE deleted_at IS NULL LIMIT $1 OFFSET $2", limit, offset) //ищем каждое поле в таблице
+func (m ExpenseModel) GetAllExpenses(limit, offset int) ([]Expense, error) {
+	rows, err := m.DB.Query("SELECT id, name, price, category,deleted_at FROM expenses WHERE deleted_at IS NULL LIMIT $1 OFFSET $2", limit, offset) //ищем каждое поле в таблице
 
 	if err != nil {
 		return nil, AppError{
@@ -132,9 +135,9 @@ func GetAllExpenses(limit, offset int) ([]Expense, error) {
 }
 
 // ! Запись данных в базу данных
-func InsertExpense(e Expense) error {
+func (m ExpenseModel) InsertExpense(e Expense) error {
 	query := "INSERT INTO expenses (name, price, category) VALUES ($1, $2, $3)"
-	_, err := DB.Exec(query, e.Name, e.Price, e.Category)
+	_, err := m.DB.Exec(query, e.Name, e.Price, e.Category)
 	if err != nil {
 		return AppError{
 			Err:     err,
@@ -146,7 +149,7 @@ func InsertExpense(e Expense) error {
 	return nil
 }
 
-func InitDB() error { //! Создание подключения к базе данных
+func InitDB() (*sql.DB, error) { //! Создание подключения к базе данных
 	host := os.Getenv("DB_HOST")
 	port := os.Getenv("DB_PORT")
 	user := os.Getenv("DB_USER")
@@ -155,13 +158,13 @@ func InitDB() error { //! Создание подключения к базе д
 	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbname) //? инициализация, меняется только пороль и имя базы
 
 	var err error
-	DB, err = sql.Open("postgres", connStr) //!подключение
+	DB, err := sql.Open("postgres", connStr) //!подключение
 	if err != nil {
-		return fmt.Errorf("ошибка конфигурации бд:%v", err)
+		return nil, fmt.Errorf("ошибка конфигурации бд:%v", err)
 	}
 	err = DB.Ping() //!Проверка подключения к бд
 	if err != nil {
-		return fmt.Errorf("не удалось подключиться к бд: %v", err)
+		return nil, fmt.Errorf("не удалось подключиться к бд: %v", err)
 	}
 	query := ` 
 	CREATE TABLE IF NOT EXISTS expenses (
@@ -174,10 +177,10 @@ func InitDB() error { //! Создание подключения к базе д
 
 	_, err = DB.Exec(query)
 	if err != nil {
-		return fmt.Errorf("не удалось создать таблицу - %v ", err)
+		return nil, fmt.Errorf("не удалось создать таблицу - %v ", err)
 	}
 	fmt.Println("Успешное подключение к PostgreSQL")
-	return nil
+	return DB, nil
 }
 
 func (b *Budget) LoadFromFile(filename string) error { //! этот процесс называется десериализация, сбор среза байт в читаемые строки
