@@ -16,6 +16,41 @@ type Handler struct {
 	UserM    models.UserModel
 }
 
+func (h Handler) LoginHandler(w http.ResponseWriter, r *http.Request) {
+	var input models.RegisterInput
+	err := json.NewDecoder(r.Body).Decode(&input)
+	if err != nil {
+		http.Error(w, "Некорректный формат JSON", http.StatusBadRequest)
+		return
+	}
+	response := models.ValidateUserData(input)
+	if response != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		err = json.NewEncoder(w).Encode(response)
+		if err != nil {
+			http.Error(w, "Ошибка при кодировании файла", http.StatusBadRequest)
+			return
+		}
+		return
+	}
+	id, err := h.UserM.CheckPassword(input.Email, input.Password)
+	if err != nil {
+		var appErr models.AppError
+		if errors.As(err, &appErr) {
+			http.Error(w, appErr.Message, appErr.Status)
+		} else {
+			http.Error(w, "Ошибка сервера", http.StatusInternalServerError)
+			return
+		}
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	err = json.NewEncoder(w).Encode(map[string]int{"тестовая_запись": id})
+
+}
+
 func (h Handler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	var input models.RegisterInput
 
