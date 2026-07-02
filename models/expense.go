@@ -1,6 +1,7 @@
 package models
 
 import (
+	"CLIExpense/handlers"
 	"bufio"
 	"database/sql"
 	"encoding/json"
@@ -291,6 +292,23 @@ func ValidateExpense(expense Expense) map[string]string {
 	}
 	if strings.TrimSpace(expense.Category) == "" {
 		errors["category"] = "поле категории не должно пустовать"
+	}
+	if len(errors) > 0 {
+		return errors
+	}
+	return nil
+}
+
+func ValidateUserData(registerInput handlers.RegisterInput) map[string]string {
+	errors := make(map[string]string)
+	if strings.TrimSpace(registerInput.Email) == "" {
+		errors["email"] = "поле email не может быть пустым"
+	}
+	if strings.TrimSpace(registerInput.Password) == "" {
+		errors["password"] = "поле password не может быть пустым"
+	}
+	if len(registerInput.Password) < 6 {
+		errors["password"] = "пароль должен быть больше 6 символов"
 	}
 	if len(errors) > 0 {
 		return errors

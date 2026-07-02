@@ -13,6 +13,46 @@ import (
 
 type Handler struct {
 	ExpenseM models.ExpenseModel
+	UserM    models.UserModel
+}
+
+type RegisterInput struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+func (h Handler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
+	var input RegisterInput
+
+	err := json.NewDecoder(r.Body).Decode(&input)
+	if err != nil {
+		http.Error(w, "Некорректный формат JSON", http.StatusBadRequest)
+		return
+	}
+	response := models.ValidateUserData(input)
+	if response != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		err = json.NewEncoder(w).Encode(response)
+		if err != nil {
+			http.Error(w, "Ошибка при кодировании файла", http.StatusBadRequest)
+			return
+		}
+		return
+	}
+	err = h.UserM.Register(input.Email, input.Password)
+	if err != nil {
+		var appErr models.AppError
+		if errors.As(err, appErr) {
+			http.Error(w, appErr.Message, appErr.Status)
+		} else {
+			http.Error(w, "внутреняя ошибка сервера", http.StatusInternalServerError)
+		}
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"message": "Пользователь успешно зарегистрирован!"})
 }
 
 // ! Стартовая страница
