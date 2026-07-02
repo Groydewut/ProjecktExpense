@@ -1,7 +1,6 @@
 package models
 
 import (
-	"CLIExpense/handlers"
 	"bufio"
 	"database/sql"
 	"encoding/json"
@@ -37,6 +36,11 @@ var (
 	ExpenseMu    sync.Mutex
 	GlobalBudget Budget
 )
+
+type RegisterInput struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
 
 const Filename = "my_expenses.json"
 
@@ -299,7 +303,7 @@ func ValidateExpense(expense Expense) map[string]string {
 	return nil
 }
 
-func ValidateUserData(registerInput handlers.RegisterInput) map[string]string {
+func ValidateUserData(registerInput RegisterInput) map[string]string {
 	errors := make(map[string]string)
 	if strings.TrimSpace(registerInput.Email) == "" {
 		errors["email"] = "поле email не может быть пустым"
