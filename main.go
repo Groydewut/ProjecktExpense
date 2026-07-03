@@ -27,7 +27,11 @@ func main() {
 	defer db.Close()
 
 	myModel := models.ExpenseModel{DB: db}
-	myHandler := handlers.Handler{ExpenseM: myModel}
+	userModel := models.UserModel{DB: db}
+	myHandler := handlers.Handler{
+		ExpenseM: myModel,
+		UserM:    userModel,
+	}
 
 	//!Создание главного роутера
 	r := chi.NewRouter()
