@@ -6,6 +6,40 @@
     <title>Учёт расходов</title>
 </head>
 <body>
-    
+    <div class="container">
+        <div id="auth-screen" class="screen">
+            <h2>Вход в систему</h2>
+            <from id="login-from">
+                <input type="email" id="auth-email" placeholder="Email" required>
+                <input type="password" id="auth-password" placeholder="Пароль" required>
+                <div class="buttons">
+                    <button type="submit" id="btn-login">Войти</button>
+                    <button type="button" id="btn-register">Зарегистрироваться</button>
+                </div>
+            </form>
+            <p id="auth-error" class="error"></p>
+        </div>
+
+        <div id="app-screen" class="screen hidden">
+            <div class="header">
+                <h2>Мои расходы</h2>
+                <button id="btn-logout">Выйти</button>
+            </div>
+            
+            <form id="expense-form">
+                <input type="text" id="exp-name" placeholder="Название (например, Кофе)" required>
+                <input type="number" id="exp-price" placeholder="Цена" required>
+                <input type="text" id="exp-category" placeholder="Категория" required>
+                <button type="submit">Добавить</button>
+            </form>
+
+            <div id="total-amount">Общая сумма: 0 руб.</div>
+            <ul id="expenses-list">
+                </ul>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
 </body>
 </html>
+        
