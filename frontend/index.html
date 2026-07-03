@@ -4,44 +4,93 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Учёт расходов</title>
+    <!-- Подключаем современный шрифт и иконки -->
+    <link rel="preconnect" href="https://googleapis.com">
+    <link rel="preconnect" href="https://gstatic.com" crossorigin>
+    <link href="https://googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
-
 </head>
 <body>
     <div class="container">
-        <div id="auth-screen" class="screen">
-            <h2>Вход в систему</h2>
+        <!-- Экран авторизации -->
+        <div id="auth-screen" class="screen card animate-fade-in">
+            <div class="auth-header">
+                <h2>Вход в систему</h2>
+                <p class="subtitle">Управляйте своими финансами с умом</p>
+            </div>
             <form id="login-form">
-                <input type="email" id="auth-email" placeholder="Email" required>
-                <input type="password" id="auth-password" placeholder="Пароль" required>
-                <div class="buttons">
-                    <button type="submit" id="btn-login">Войти</button>
-                    <button type="button" id="btn-register">Зарегистрироваться</button>
+                <div class="input-group">
+                    <span class="material-symbols-rounded input-icon"></span>
+                    <input type="email" id="auth-email" placeholder="Email" required>
+                </div>
+                <div class="input-group">
+                    <span class="material-symbols-rounded input-icon"></span>
+                    <input type="password" id="auth-password" placeholder="Пароль" required>
+                </div>
+                <div class="buttons-stack">
+                    <button type="submit" id="btn-login" class="btn btn-primary">Войти</button>
+                    <button type="button" id="btn-register" class="btn btn-secondary">Создать аккаунт</button>
                 </div>
             </form>
-            <p id="auth-error" class="error"></p>
+            <p id="auth-error" class="error-message"></p>
         </div>
 
-        <div id="app-screen" class="screen hidden">
-            <div class="header">
-                <h2>Мои расходы</h2>
-                <button id="btn-logout">Выйти</button>
-            </div>
+        <!-- Главный экран приложения -->
+        <div id="app-screen" class="screen hidden animate-fade-in">
+            <header class="main-header">
+                <div class="user-info">
+                    <span class="material-symbols-rounded wallet-icon"></span>
+                    <h2>Мои расходы</h2>
+                </div>
+                <button id="btn-logout" class="btn btn-icon-only" title="Выйти">
+                    <span class="material-symbols-rounded">Выйти</span>
+                </button>
+            </header>
             
-            <form id="expense-form">
-                <input type="text" id="exp-name" placeholder="Название (например, Кофе)" required>
-                <input type="number" id="exp-price" placeholder="Цена" required>
-                <input type="text" id="exp-category" placeholder="Категория" required>
-                <button type="submit">Добавить</button>
+            <!-- Виджет общей суммы -->
+            <div class="total-card">
+                <span class="total-label">Итого потрачено</span>
+                <div id="total-amount" class="total-value">0 <span class="currency">₽</span></div>
+            </div>
+
+            <!-- Форма добавления -->
+            <form id="expense-form" class="card expense-form-grid">
+                <div class="input-group">
+                    <span class="material-symbols-rounded input-icon"></span>
+                    <input type="text" id="exp-name" placeholder="Название (например, Кофе)" required>
+                </div>
+                <div class="input-group">
+                    <span class="material-symbols-rounded input-icon"></span>
+                    <input type="number" id="exp-price" placeholder="Цена" required>
+                </div>
+                <div class="input-group">
+                    <span class="material-symbols-rounded input-icon"></span>
+                    <input type="text" id="exp-category" placeholder="Категория" required>
+                </div>
+                <button type="submit" class="btn btn-primary btn-add">
+                    <span class="material-symbols-rounded"></span>
+                    Добавить
+                </button>
             </form>
 
-            <div id="total-amount">Общая сумма: 0 руб.</div>
-            <ul id="expenses-list">
+            <!-- Список транзакций -->
+            <div class="list-section">
+                <h3>История транзакций</h3>
+                <ul id="expenses-list" class="expense-list">
+                    <!-- Пример того, как должен рендериться элемент через JS для красоты:
+                    <li class="expense-item">
+                        <div class="expense-info">
+                            <span class="expense-title">Кофе</span>
+                            <span class="expense-cat">Кафе и рестораны</span>
+                        </div>
+                        <span class="expense-cost">- 250 ₽</span>
+                    </li> 
+                    -->
                 </ul>
+            </div>
         </div>
     </div>
 
     <script src="app.js" defer></script>
-
 </body>
 </html>

@@ -1,6 +1,30 @@
-const API_URL = ''; // Запросы идут на тот же сервер
+const API_URL = '';
 
-// 1. ЖДЕМ ПОЛНУЮ ЗАГРУЗКУ СТРАНИЦЫ
+// Выносим функции в глобальную область или привязываем к window,
+// чтобы инлайновые обработчики (onclick) могли их найти.
+window.deleteExpense = async function(id) {
+    const token = localStorage.getItem('token');
+    if (!id || !confirm('Удалить эту трату?')) return;
+
+    try {
+        console.log(`🗑️ Отправка запроса DELETE на /expenses/${id}`);
+        const response = await fetch(`${API_URL}/expenses/${id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.status === 401) return logout();
+        if (!response.ok) throw new Error('Не удалось удалить трату сервером');
+
+        console.log(`✅ Трата ${id} успешно удалена!`);
+        loadExpenses();
+        loadTotal();
+    } catch (err) {
+        console.error('❌ Ошибка удаления:', err);
+        alert(err.message);
+    }
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     console.log("🚀 DOM дерево загружено. Инициализация приложения...");
 
@@ -9,22 +33,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const expenseForm = document.getElementById('expense-form');
     const btnLogout = document.getElementById('btn-logout');
 
-    // Проверяем наличие критической формы
     if (!loginForm) {
         console.error("🔴 КРИТИЧЕСКАЯ ОШИБКА: Не найден элемент с id='login-form' в HTML!");
         return;
     }
 
-    // Авто-вход при наличии сохраненного токена
     const token = localStorage.getItem('token');
     if (token) {
         console.log("🎫 Найдена сессия (токен). Переходим в личный кабинет...");
         showAppScreen();
     }
 
-    // === ОБРАБОТЧИКИ СОБЫТИЙ ФОРМ ===
-
-    // Обработчик Входа
+    // Авторизация
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const email = document.getElementById('auth-email').value;
@@ -32,13 +52,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const authError = document.getElementById('auth-error');
 
         try {
-            const response = await fetch('/login', {
+            const response = await fetch(`${API_URL}/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password })
             });
-            const data = await response.json();
 
+            const data = await response.json();
             if (!response.ok) throw new Error(data.message || 'Неверный email или пароль');
 
             localStorage.setItem('token', data.token);
@@ -53,7 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Обработчик Регистрации
+    // Регистрация
     if (btnRegister) {
         btnRegister.addEventListener('click', async () => {
             const email = document.getElementById('auth-email').value;
@@ -66,13 +86,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             try {
-                const response = await fetch('/register', {
+                const response = await fetch(`${API_URL}/register`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email, password })
                 });
-                const data = await response.json();
 
+                const data = await response.json();
                 if (!response.ok) throw new Error(data.message || 'Ошибка регистрации');
 
                 if (authError) {
@@ -89,7 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Обработчик Добавления Траты
+    // Добавление траты
     if (expenseForm) {
         expenseForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -100,9 +120,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             try {
                 console.log("📤 Отправка новой траты на сервер...");
-                const response = await fetch('/expenses', {
+                const response = await fetch(`${API_URL}/expenses`, {
                     method: 'POST',
-                    headers: { 
+                    headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
                     },
@@ -114,8 +134,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 expenseForm.reset();
                 console.log("✅ Трата успешно добавлена. Обновляем списки...");
-                
-                // Перезапрашиваем данные для интерфейса
                 loadExpenses();
                 loadTotal();
             } catch (err) {
@@ -125,21 +143,17 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Кнопка Выхода
     if (btnLogout) {
         btnLogout.addEventListener('click', logout);
     }
 });
 
-// === ГЛОБАЛЬНЫЕ ФУНКЦИИ (Доступны везде) ===
-
+// Функции управления экранами
 function showAppScreen() {
     const authScreen = document.getElementById('auth-screen');
     const appScreen = document.getElementById('app-screen');
     if (authScreen) authScreen.classList.add('hidden');
     if (appScreen) appScreen.classList.remove('hidden');
-    
-    // Запускаем сбор данных
     loadExpenses();
     loadTotal();
 }
@@ -153,21 +167,20 @@ function logout() {
     console.log("🚪 Выход из системы выполнен.");
 }
 
-// 2. ЗАГРУЗКА РАСХОДОВ С ЗАЩИТОЙ ОТ СБОЕВ
+// Загрузка данных
 async function loadExpenses() {
     const token = localStorage.getItem('token');
     const list = document.getElementById('expenses-list');
     if (!list) return;
-    
+
     try {
         console.log("🔄 Запрос списка трат с бэкенда...");
-        const response = await fetch('/expenses', {
+        const response = await fetch(`${API_URL}/expenses`, {
             method: 'GET',
             headers: { 'Authorization': `Bearer ${token}` }
         });
 
         if (response.status === 401) return logout();
-        
         if (!response.ok) {
             list.innerHTML = `<li style="color: red;">Ошибка сервера (Статус ${response.status})</li>`;
             return;
@@ -175,27 +188,22 @@ async function loadExpenses() {
 
         const expenses = await response.json();
         console.log("📦 Ответ сервера на /expenses:", expenses);
-        
         list.innerHTML = '';
-        
-        // Безопасная проверка: массив ли это, и есть ли в нем элементы
+
         if (!expenses || !Array.isArray(expenses) || expenses.length === 0) {
             list.innerHTML = '<li style="justify-content: center; color: #6c757d;">Трат пока нет</li>';
             return;
         }
 
         expenses.forEach(exp => {
-            // Защита: маппим ключи и с большой, и с маленькой буквы
             const id = exp.ID ?? exp.id;
             const name = exp.Name ?? exp.name ?? 'Без названия';
             const category = exp.Category ?? exp.category ?? 'Разное';
             const price = exp.Price ?? exp.price ?? 0;
 
             const li = document.createElement('li');
-            li.innerHTML = `
-                <span><strong>${name}</strong> <small style="color:#6c757d">(${category})</small> — ${price} руб.</span>
-                <button onclick="deleteExpense(${id})" style="background:none; border:none; cursor:pointer; font-size:16px;">❌</button>
-            `;
+            li.innerHTML = `<span><strong>${name}</strong> <small style="color:#6c757d">(${category})</small> — ${price} руб.</span>
+                            <button onclick="deleteExpense(${id})" style="background:none; border:none; cursor:pointer; font-size:16px;">❌</button>`;
             list.appendChild(li);
         });
     } catch (err) {
@@ -204,42 +212,13 @@ async function loadExpenses() {
     }
 }
 
-// 3. УДАЛЕНИЕ ТРАТЫ
-async function deleteExpense(id) {
-    const token = localStorage.getItem('token');
-    if (!id || !confirm('Удалить эту трату?')) return;
-
-    try {
-        console.log(`🗑️ Отправка запроса DELETE на /expenses/${id}`);
-        
-        // Делаем запрос на /expenses/ID
-        const response = await fetch(`/expenses/${id}`, { 
-            method: 'DELETE',
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-
-        if (response.status === 401) return logout();
-        if (!response.ok) throw new Error('Не удалось удалить трату сервером');
-
-        console.log(`✅ Трата ${id} успешно удалена!`);
-        
-        // Перерисовываем интерфейс
-        loadExpenses();
-        loadTotal();
-    } catch (err) {
-        console.error('❌ Ошибка удаления:', err);
-        alert(err.message);
-    }
-}
-
-// 4. ЗАГРУЗКА ОБЩЕЙ СУММЫ С ЗАЩИТОЙ ОТ [object Object]
 async function loadTotal() {
     const token = localStorage.getItem('token');
     const totalBlock = document.getElementById('total-amount');
     if (!totalBlock) return;
 
     try {
-        const response = await fetch('/total', {
+        const response = await fetch(`${API_URL}/total`, {
             method: 'GET',
             headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -250,10 +229,7 @@ async function loadTotal() {
         }
 
         const data = await response.json();
-        
-        // Твой сервер возвращает total_price, забираем его!
         const totalValue = data.total_price ?? 0;
-
         totalBlock.innerText = `Общая сумма: ${totalValue} руб.`;
     } catch (err) {
         console.error('🔴 Критическая ошибка в loadTotal:', err);
