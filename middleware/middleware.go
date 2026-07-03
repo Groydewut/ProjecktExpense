@@ -27,7 +27,7 @@ type contextKey string
 
 const UserIDKey contextKey = "UserID"
 
-func AuthMIddleware(next http.Handler) http.Handler {
+func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// 1. Достаем заголовок Authorization
 		authHeader := r.Header.Get("Authorization")

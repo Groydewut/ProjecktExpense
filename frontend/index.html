@@ -4,12 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Учёт расходов</title>
+    <link rel="stylesheet" href="styles.css">
+
 </head>
 <body>
     <div class="container">
         <div id="auth-screen" class="screen">
             <h2>Вход в систему</h2>
-            <from id="login-from">
+            <form id="login-form">
                 <input type="email" id="auth-email" placeholder="Email" required>
                 <input type="password" id="auth-password" placeholder="Пароль" required>
                 <div class="buttons">
@@ -39,7 +41,7 @@
         </div>
     </div>
 
-    <script src="app.js"></script>
+    <script src="app.js" defer></script>
+
 </body>
 </html>
-        
