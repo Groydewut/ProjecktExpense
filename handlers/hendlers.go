@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"CLIExpense/auth"
+	"CLIExpense/middleware"
 	"CLIExpense/models"
 	"encoding/json"
 	"errors"
@@ -45,9 +47,16 @@ func (h Handler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+
+	token, err := auth.GenerateToken(id)
+	if err != nil {
+		http.Error(w, "Ошибка сервера", http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	err = json.NewEncoder(w).Encode(map[string]int{"тестовая_запись": id})
+	err = json.NewEncoder(w).Encode(map[string]string{"token": token})
 
 }
 
@@ -94,6 +103,12 @@ func HelloHandler(w http.ResponseWriter, r *http.Request) {
 
 // ! Созадние гет запроса, просим показать записи которые уже есть
 func (h Handler) ExpensesHandler(w http.ResponseWriter, r *http.Request) {
+	// Достаем id пользователя, который совершил этот запрос!
+	userID, ok := r.Context().Value(middleware.UserIDKey).(int)
+	if !ok {
+		http.Error(w, "Ошибка авторизации", http.StatusUnauthorized)
+		return
+	}
 
 	pages := 1
 	pagesStr := r.URL.Query().Get("page")
@@ -120,8 +135,8 @@ func (h Handler) ExpensesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	offset := (pages - 1) * limit
-
-	expenses, err := h.ExpenseM.GetAllExpenses(limit, offset)
+	// Передаем userID в базу данных, чтобы получить траты ТОЛЬКО ЭТОГО пользователя!
+	expenses, err := h.ExpenseM.GetAllExpenses(limit, offset, userID)
 	if err != nil {
 		var appErr models.AppError
 
@@ -159,8 +174,8 @@ func (h Handler) ExpensesCreateHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-
-	err = h.ExpenseM.InsertExpense(newExpense)
+	userID := r.Context().Value(middleware.UserIDKey).(int)
+	err = h.ExpenseM.InsertExpense(newExpense, userID)
 	if err != nil {
 		var appErr models.AppError
 
@@ -184,7 +199,9 @@ func (h Handler) GetExpenseByID(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Отправлены не верные данные", http.StatusBadRequest)
 		return
 	}
-	res, err := h.ExpenseM.GetOneExpense(id)
+	userID := r.Context().Value(middleware.UserIDKey).(int)
+
+	res, err := h.ExpenseM.GetOneExpense(id, userID)
 	if err != nil {
 		var appErr models.AppError
 
@@ -214,8 +231,9 @@ func (h Handler) ExpensesDel(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Отправлены не верные данные", http.StatusBadRequest)
 		return
 	}
+	userID := r.Context().Value(middleware.UserIDKey).(int)
 
-	err = h.ExpenseM.DeleteFromID(id)
+	err = h.ExpenseM.DeleteFromID(id, userID)
 	if err != nil {
 		var appErr models.AppError
 
@@ -239,7 +257,9 @@ func (h Handler) ExpensesDel(w http.ResponseWriter, r *http.Request) {
 
 // ! Создание гет запроса, получение общей суммы
 func (h Handler) TotalHandler(w http.ResponseWriter, r *http.Request) {
-	total, err := h.ExpenseM.TotalFromPrice()
+	userID := r.Context().Value(middleware.UserIDKey).(int)
+
+	total, err := h.ExpenseM.TotalFromPrice(userID)
 	if err != nil {
 		http.Error(w, "Внутриняя ошибка сервера", http.StatusInternalServerError)
 		return

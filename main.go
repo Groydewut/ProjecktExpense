@@ -36,13 +36,20 @@ func main() {
 
 	//!определяем маршруты(rest API)
 
-	r.Get("/expenses", myHandler.ExpensesHandler)
-	r.Get("/expenses/{id}", myHandler.GetExpenseByID)
-	r.Post("/add", myHandler.ExpensesCreateHandler)
-	r.Get("/total", myHandler.TotalHandler)
-	// Магия chi: красивый URL-параметр {id} вместо ?id=...
-	r.Delete("/delete/{id}", myHandler.ExpensesDel)
 	r.Get("/", handlers.HelloHandler)
+	r.Post("/register", myHandler.RegisterHandler)
+	r.Post("/login", myHandler.LoginHandler)
+
+	r.Group(func(r chi.Router) {
+		r.Use(middleware.AuthMIddleware)
+
+		r.Get("/expenses", myHandler.ExpensesHandler)
+		r.Get("/expenses/{id}", myHandler.GetExpenseByID)
+		r.Post("/add", myHandler.ExpensesCreateHandler)
+		r.Get("/total", myHandler.TotalHandler)
+		// Магия chi: красивый URL-параметр {id} вместо ?id=...
+		r.Delete("/delete/{id}", myHandler.ExpensesDel)
+	})
 
 	fmt.Println("Сревер запущен на http://localhost:8080 ")
 

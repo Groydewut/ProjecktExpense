@@ -44,9 +44,9 @@ type RegisterInput struct {
 
 const Filename = "my_expenses.json"
 
-func (m ExpenseModel) TotalFromPrice() (float64, error) {
+func (m ExpenseModel) TotalFromPrice(userID int) (float64, error) {
 	var total float64
-	err := m.DB.QueryRow("SELECT COALESCE(SUM(price),0) FROM expenses WHERE deleted_at IS NULL").Scan(&total) //создание запрос который вернёт одну строку, COALESCE(SUM(price),0) - говорит что если первое значение NULL возми второе значение
+	err := m.DB.QueryRow("SELECT COALESCE(SUM(price),0) FROM expenses WHERE user_id = $1 AND deleted_at IS NULL", userID).Scan(&total) //создание запрос который вернёт одну строку, COALESCE(SUM(price),0) - говорит что если первое значение NULL возми второе значение
 	if err != nil {
 		return 0, err
 	}
@@ -55,15 +55,15 @@ func (m ExpenseModel) TotalFromPrice() (float64, error) {
 
 }
 
-func (m ExpenseModel) GetOneExpense(id int) (Expense, error) {
-	query := "SELECT id,name,price,category,deleted_at FROM expenses WHERE id=$1 AND deleted_at IS NULL"
+func (m ExpenseModel) GetOneExpense(id int, userID int) (Expense, error) {
+	query := "SELECT id,name,price,category,deleted_at FROM expenses WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL"
 	var e Expense
-	err := m.DB.QueryRow(query, id).Scan(&e.ID, &e.Name, &e.Price, &e.Category, &e.DeletedAt)
+	err := m.DB.QueryRow(query, id, userID).Scan(&e.ID, &e.Name, &e.Price, &e.Category, &e.DeletedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return Expense{}, AppError{
 				Err:     err,
-				Message: "Трата с таким id не найдена",
+				Message: "Трата с таким id не найдена или у вас нет прав на её просмотр",
 				Status:  http.StatusNotFound,
 			}
 		}
@@ -77,10 +77,10 @@ func (m ExpenseModel) GetOneExpense(id int) (Expense, error) {
 	return e, nil
 }
 
-func (m ExpenseModel) DeleteFromID(id int) error {
-	query := "UPDATE expenses SET deleted_at = NOW() WHERE id=$1 AND deleted_at IS NULL" //удаление строки по id ипользуя плейсхолдер(подставное значение,защита от sql инъекций)
+func (m ExpenseModel) DeleteFromID(id, userID int) error {
+	query := "UPDATE expenses SET deleted_at = NOW() WHERE id=$1 AND user_id = $2 AND deleted_at IS NULL" //удаление строки по id ипользуя плейсхолдер(подставное значение,защита от sql инъекций)
 	// ! AND deleted_at IS NULL — это защита от повторного удаления уже удаленного элемента
-	res, err := m.DB.Exec(query, id)
+	res, err := m.DB.Exec(query, id, userID)
 	// res хранит результат удаления, объект sql.Result
 	if err != nil {
 		return AppError{
@@ -102,7 +102,7 @@ func (m ExpenseModel) DeleteFromID(id int) error {
 	if count == 0 {
 		return AppError{
 			Err:     err,
-			Message: "Траты с таким id не существует или она удалена",
+			Message: "Траты с таким id не существует или у вас нет прав на её удалени",
 			Status:  http.StatusNotFound,
 		}
 	}
@@ -110,8 +110,8 @@ func (m ExpenseModel) DeleteFromID(id int) error {
 	return nil
 }
 
-func (m ExpenseModel) GetAllExpenses(limit, offset int) ([]Expense, error) {
-	rows, err := m.DB.Query("SELECT id, name, price, category,deleted_at FROM expenses WHERE deleted_at IS NULL LIMIT $1 OFFSET $2", limit, offset) //ищем каждое поле в таблице
+func (m ExpenseModel) GetAllExpenses(limit, offset, userID int) ([]Expense, error) {
+	rows, err := m.DB.Query("SELECT id, name, price, category,deleted_at FROM expenses WHERE user_id = $1 AND deleted_at IS NULL LIMIT $2 OFFSET $3", userID, limit, offset) //ищем каждое поле в таблице
 
 	if err != nil {
 		return nil, AppError{
@@ -140,9 +140,9 @@ func (m ExpenseModel) GetAllExpenses(limit, offset int) ([]Expense, error) {
 }
 
 // ! Запись данных в базу данных
-func (m ExpenseModel) InsertExpense(e Expense) error {
-	query := "INSERT INTO expenses (name, price, category) VALUES ($1, $2, $3)"
-	_, err := m.DB.Exec(query, e.Name, e.Price, e.Category)
+func (m ExpenseModel) InsertExpense(e Expense, userID int) error {
+	query := "INSERT INTO expenses (name, price, category, user_id) VALUES ($1, $2, $3, $4)"
+	_, err := m.DB.Exec(query, e.Name, e.Price, e.Category, userID)
 	if err != nil {
 		return AppError{
 			Err:     err,
