@@ -1,0 +1,8 @@
+.env
+.git/
+.vscode/
+README.md
+my_expenses.json
+Dockerfile
+.dockerignore
+*.exe
