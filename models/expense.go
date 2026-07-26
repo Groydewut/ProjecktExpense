@@ -162,22 +162,22 @@ func InitDB() (*sql.DB, error) { //! Создание подключения к 
 	password := os.Getenv("DB_PASSWORD")
 	dbname := os.Getenv("DB_NAME")
 	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbname) //? инициализация, меняется только пороль и имя базы
-
+	var DB *sql.DB
 	var err error
 	for i := 0; i <= 5; i++ {
-		DB, err := sql.Open("postgres", connStr) //!подключение
+		DB, err = sql.Open("postgres", connStr) //!подключение
 		if err == nil {
 			err = DB.Ping() //!Проверка подключения к бд
 			if err == nil {
 				break
 			}
-			log.Printf("Попытка %d: бд ещё не готова, ждём...", i)
-			time.Sleep(2 * time.Second)
-		}
-		if err != nil {
-			log.Fatalf("Не удадлсь подключиться к бд после 5 пыпыток: %v", err)
-		}
 
+		}
+		log.Printf("Попытка %d: бд ещё не готова, ждём...", i)
+		time.Sleep(2 * time.Second)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("Не удадлсь подключиться к бд после 5 пыпыток: %v", err)
 	}
 
 	query := ` 
