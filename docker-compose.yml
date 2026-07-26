@@ -15,7 +15,7 @@ services:
       - "5432:5432"
     # Сохраняет данные на диске вашего ПК, чтобы они не пропадали при перезапуске
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql
 
   web:
     build: .
