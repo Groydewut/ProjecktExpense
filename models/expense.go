@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -163,14 +164,22 @@ func InitDB() (*sql.DB, error) { //! Создание подключения к 
 	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbname) //? инициализация, меняется только пороль и имя базы
 
 	var err error
-	DB, err := sql.Open("postgres", connStr) //!подключение
-	if err != nil {
-		return nil, fmt.Errorf("ошибка конфигурации бд:%v", err)
+	for i := 0; i <= 5; i++ {
+		DB, err := sql.Open("postgres", connStr) //!подключение
+		if err == nil {
+			err = DB.Ping() //!Проверка подключения к бд
+			if err == nil {
+				break
+			}
+			log.Printf("Попытка %d: бд ещё не готова, ждём...", i)
+			time.Sleep(2 * time.Second)
+		}
+		if err != nil {
+			log.Fatalf("Не удадлсь подключиться к бд после 5 пыпыток: %v", err)
+		}
+
 	}
-	err = DB.Ping() //!Проверка подключения к бд
-	if err != nil {
-		return nil, fmt.Errorf("не удалось подключиться к бд: %v", err)
-	}
+
 	query := ` 
 	CREATE TABLE IF NOT EXISTS expenses (
 		id SERIAL PRIMARY KEY,
