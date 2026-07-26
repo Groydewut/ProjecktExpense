@@ -1,6 +1,22 @@
 version: '3.8'
 
 services:
+  db:
+    image: postgres:18.4
+    container_name: expense_db
+    restart: always
+
+    # Переменные для инициализации БД (нужны при первом запуске)
+    environment:
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mysecretpassword
+      POSTGRES_DB: expense_tracker
+    ports:
+      - "5432:5432"
+    # Сохраняет данные на диске вашего ПК, чтобы они не пропадали при перезапуске
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
   web:
     build: .
 
@@ -9,6 +25,18 @@ services:
     ports:
       - "8080:8080"
     
-    env_file:
-      - .env
+    # Говорит Docker, что приложение нужно запускать ТОЛЬКО после старта базы данных
+    depends_on:
+      - db
+    
+    # Передаем переменные для подключения напрямую из этого файла
+    environment:
+      DB_HOST: db  # Важно: внутри сети Docker хостом является имя сервиса базы данных!
+      DB_PORT: 5432
+      DB_USER: myuser
+      DB_PASSWORD: mysecretpassword
+      DB_NAME: expense_tracker
+    
+volumes:
+  pgdata:
 
