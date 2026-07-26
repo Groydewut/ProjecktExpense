@@ -181,6 +181,12 @@ func InitDB() (*sql.DB, error) { //! Создание подключения к 
 	}
 
 	query := ` 
+	CREATE TABLE IF NOT EXISTS users (
+		id SERIAL PRIMARY KEY,
+		email VARCHAR(255) UNIQUE NOT NULL,
+		password_hash TEXT NOT NULL
+	);
+	
 	CREATE TABLE IF NOT EXISTS expenses (
 		id SERIAL PRIMARY KEY,
 		name TEXT NOT NULL,
