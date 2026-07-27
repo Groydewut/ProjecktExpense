@@ -38,7 +38,7 @@
 
 1. **Клонируйте репозиторий:**
 ```bash
-git clone https://github.com/your-username/CLIExpense.git
+git clone https://github.com/Groydewut/ProjecktExpense.git
 cd CLIExpense
 
 ```
