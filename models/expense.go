@@ -164,7 +164,7 @@ func InitDB() (*sql.DB, error) { //! Создание подключения к 
 	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbname) //? инициализация, меняется только пороль и имя базы
 	var DB *sql.DB
 	var err error
-	for i := 0; i <= 5; i++ {
+	for i := 1; i <= 5; i++ {
 		DB, err = sql.Open("postgres", connStr) //!подключение
 		if err == nil {
 			err = DB.Ping() //!Проверка подключения к бд
@@ -180,20 +180,28 @@ func InitDB() (*sql.DB, error) { //! Создание подключения к 
 		return nil, fmt.Errorf("Не удадлсь подключиться к бд после 5 пыпыток: %v", err)
 	}
 
-	query := ` 
+	query := `
+	-- 1. Таблица пользователей
 	CREATE TABLE IF NOT EXISTS users (
 		id SERIAL PRIMARY KEY,
 		email VARCHAR(255) UNIQUE NOT NULL,
 		password_hash TEXT NOT NULL
 	);
-	
+
+	-- 2. Таблица расходов с правильными типами данных
 	CREATE TABLE IF NOT EXISTS expenses (
 		id SERIAL PRIMARY KEY,
+		user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
 		name TEXT NOT NULL,
 		price DOUBLE PRECISION NOT NULL,
 		category TEXT NOT NULL,
-		deleted_at TIMESTAMP DEFAULT NULL
-	);` //? Создание таблицы даных в базе данных
+		deleted_at TIMESTAMP WITH TIME ZONE DEFAULT NULL
+	);
+
+	-- 3. Миграции для старых таблиц (дозаписываем недостающие колонки)
+	ALTER TABLE expenses ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id) ON DELETE CASCADE;
+	ALTER TABLE expenses ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE DEFAULT NULL;
+	` //? Создание таблицы даных в базе данных
 
 	_, err = DB.Exec(query)
 	if err != nil {
