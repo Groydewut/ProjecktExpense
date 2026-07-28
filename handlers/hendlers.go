@@ -38,12 +38,12 @@ func (h Handler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	id, err := h.UserM.CheckPassword(input.Email, input.Password)
 	if err != nil {
-		var appErr models.AppError
-		if errors.As(err, &appErr) {
-			http.Error(w, appErr.Message, appErr.Status)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		if appErr, ok := err.(models.AppError); ok {
+			json.NewEncoder(w).Encode(map[string]string{"message": appErr.Message})
 		} else {
-			http.Error(w, "Ошибка сервера", http.StatusInternalServerError)
-			return
+			json.NewEncoder(w).Encode(map[string]string{"message": err.Error()})
 		}
 		return
 	}

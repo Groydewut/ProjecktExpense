@@ -45,67 +45,96 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Авторизация
-    loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const email = document.getElementById('auth-email').value;
-        const password = document.getElementById('auth-password').value;
-        const authError = document.getElementById('auth-error');
+    loginForm.addEventListener('submit', async e => {
+    e.preventDefault();
+    const email = document.getElementById('auth-email').value,
+            password = document.getElementById('auth-password').value,
+            authError = document.getElementById('auth-error');
 
         try {
-            const response = await fetch(`${API_URL}/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password })
-            });
+        const response = await fetch(`${API_URL}/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
 
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.message || 'Неверный email или пароль');
-
-            localStorage.setItem('token', data.token);
-            if (authError) authError.innerText = '';
-            showAppScreen();
-        } catch (err) {
-            console.error("❌ Ошибка входа:", err);
-            if (authError) {
-                authError.innerText = err.message;
-                authError.style.color = '#dc3545';
+        // Если сервер ответил ошибкой (400, 401, 404, 500 и т.д.)
+        if (!response.ok) {
+            // Проверяем формат: если это JSON ошибка
+            const contentType = response.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Неверный email или пароль');
+            } else {
+            // Если это обычный текст ("Не удалось...", "User not found" и т.д.)
+            const textError = await response.text();
+            throw new Error(textError || 'Неверный email или пароль');
             }
         }
-    });
 
+        // Если статус 200 (OK), значит всё прошло успешно и сервер обязан вернуть токен в JSON
+        const data = await response.json();
+        
+        localStorage.setItem('token', data.token);
+        if (authError) authError.innerText = '';
+        showAppScreen();
+
+        } catch (err) {
+        console.error("❌ Ошибка входа:", err);
+        if (authError) {
+            authError.innerText = err.message;
+            authError.style.color = '#dc3545';
+        }
+        }
+    });
     // Регистрация
     if (btnRegister) {
         btnRegister.addEventListener('click', async () => {
-            const email = document.getElementById('auth-email').value;
-            const password = document.getElementById('auth-password').value;
-            const authError = document.getElementById('auth-error');
+        const email = document.getElementById('auth-email').value,
+                password = document.getElementById('auth-password').value,
+                authError = document.getElementById('auth-error');
 
-            if (!email || !password) {
-                if (authError) authError.innerText = 'Заполните поля для регистрации';
-                return;
+        if (!email || !password) {
+            if (authError) authError.innerText = 'Заполните поля для регистрации';
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_URL}/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+            });
+
+            const contentType = response.headers.get("content-type");
+            let data = {};
+
+            // Безопасный разбор ответа в зависимости от формата
+            if (contentType && contentType.includes("application/json")) {
+            data = await response.json();
+            } else {
+            const textResponse = await response.text();
+            if (!response.ok) {
+                throw new Error(textResponse || 'Ошибка регистрации');
+            }
             }
 
-            try {
-                const response = await fetch(`${API_URL}/register`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password })
-                });
-
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.message || 'Ошибка регистрации');
-
-                if (authError) {
-                    authError.innerText = 'Успешно! Теперь нажмите "Войти"';
-                    authError.style.color = '#28a745';
-                }
-            } catch (err) {
-                console.error("❌ Ошибка регистрации:", err);
-                if (authError) {
-                    authError.innerText = err.message;
-                    authError.style.color = '#dc3545';
-                }
+            if (!response.ok) {
+            throw new Error(data.message || 'Ошибка регистрации');
             }
+
+            if (authError) {
+            authError.innerText = 'Успешно! Теперь нажмите "Войти"';
+            authError.style.color = '#28a745';
+            }
+
+        } catch (err) {
+            console.error("❌ Ошибка регистрации:", err);
+            if (authError) {
+            authError.innerText = err.message;
+            authError.style.color = '#dc3545';
+            }
+        }
         });
     }
 
