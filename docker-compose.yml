@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   db:
-    image: postgres:18.4
+    image: postgres:17
     container_name: expense_db
     restart: always
 
@@ -15,7 +15,7 @@ services:
       - "5432:5432"
     # Сохраняет данные на диске вашего ПК, чтобы они не пропадали при перезапуске
     volumes:
-      - pgdata:/var/lib/postgresql
+      - pgdata:/var/lib/postgresql/data
 
   web:
     build: .

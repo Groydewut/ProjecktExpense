@@ -10,5 +10,6 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o expense .
 FROM alpine:latest
 WORKDIR /
 COPY --from=builder /app/expense .
+COPY --from=builder /app/frontend ./frontend
 EXPOSE 8080
 CMD [ "./expense"]
