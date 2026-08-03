@@ -143,7 +143,7 @@ func (h Handler) ExpensesHandler(w http.ResponseWriter, r *http.Request) {
 		if errors.As(err, &appErr) {
 			http.Error(w, appErr.Message, appErr.Status)
 		} else {
-			http.Error(w, "Не пердвиденная ошибка", http.StatusInternalServerError)
+			http.Error(w, "Непредвиденная ошибка", http.StatusInternalServerError)
 		}
 		return
 	}
@@ -182,7 +182,7 @@ func (h Handler) ExpensesCreateHandler(w http.ResponseWriter, r *http.Request) {
 		if errors.As(err, &appErr) {
 			http.Error(w, appErr.Message, appErr.Status)
 		} else {
-			http.Error(w, "Не пердвиденная ошибка", http.StatusInternalServerError)
+			http.Error(w, "Непредвиденная ошибка", http.StatusInternalServerError)
 		}
 		return
 	}
