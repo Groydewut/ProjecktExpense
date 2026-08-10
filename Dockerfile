@@ -11,5 +11,5 @@ FROM alpine:latest
 WORKDIR /
 COPY --from=builder /app/expense .
 COPY --from=builder /app/frontend ./frontend
-EXPOSE 8080
+EXPOSE 7070
 CMD [ "./expense"]

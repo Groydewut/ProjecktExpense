@@ -23,7 +23,7 @@ services:
     container_name: expense_app
 
     ports:
-      - "8080:8080"
+      - "7070:7070"
     
     # Говорит Docker, что приложение нужно запускать ТОЛЬКО после старта базы данных
     depends_on:

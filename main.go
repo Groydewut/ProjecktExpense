@@ -74,7 +74,7 @@ func main() {
 	})
 
 	// Поправил опечатку "Сревер запущен" :)
-	fmt.Println("Сервер запущен на http://localhost:8080")
+	fmt.Println("Сервер запущен на http://localhost:7070")
 
-	log.Fatal(http.ListenAndServe(":8080", r))
+	log.Fatal(http.ListenAndServe(":7070", r))
 }
